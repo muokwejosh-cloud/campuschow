@@ -31,8 +31,8 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
     setLoading(true);
     const endpoint = isRegister
-      ? 'http://localhost:5000/api/auth/register'
-      : 'http://localhost:5000/api/auth/login';
+      ? 'https://campuschow-api.onrender.com/api/auth/register'
+      : 'https://campuschow-api.onrender.com/api/auth/login';
 
     const payload = {
       phone: formData.phone,

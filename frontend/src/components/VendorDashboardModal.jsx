@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
+const socket = io('https://campuschow-api.onrender.com');
 
 export default function VendorDashboardModal({ isOpen, onClose }) {
   const [activeSidebarTab, setActiveSidebarTab] = useState('orders'); // default to Orders for quick kitchen management
@@ -35,7 +35,7 @@ export default function VendorDashboardModal({ isOpen, onClose }) {
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
-      const res = await fetch('http://localhost:5000/api/orders');
+      const res = await fetch('https://campuschow-api.onrender.com/api/orders');
       const data = await res.json();
       if (Array.isArray(data)) {
         setOrders(data);
@@ -74,7 +74,7 @@ export default function VendorDashboardModal({ isOpen, onClose }) {
   // Vendor Action: update status to Almost Ready or Ready
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+      const res = await fetch(`https://campuschow-api.onrender.com/api/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
