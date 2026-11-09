@@ -9,7 +9,7 @@ import PlaceOrderModal from './components/PlaceOrderModal';
 import { Search, ChevronDown, Plus, ShoppingBag, Utensils, ArrowUpRight } from 'lucide-react';
 import { io } from 'socket.io-client';
 
-const socket = io('https://campuschow-api.onrender.com');
+const socket = io('http://localhost:5000');
 
 const COMBOS_DATA = [
   {
@@ -199,7 +199,7 @@ export default function App() {
   // Student completes/picks up meal from drawer
   const handleCompleteOrder = async (orderToComplete) => {
     try {
-      await fetch(`https://campuschow-api.onrender.com/api/orders/${orderToComplete._id}/status`, {
+      await fetch(`http://localhost:5000/api/orders/${orderToComplete._id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Completed' }),
@@ -258,7 +258,7 @@ export default function App() {
     };
 
     try {
-      const res = await fetch('https://campuschow-api.onrender.com/api/orders', {
+      const res = await fetch('http://localhost:5000/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderPayload),
@@ -309,7 +309,7 @@ export default function App() {
     };
 
     try {
-      const res = await fetch('https://campuschow-api.onrender.com/api/orders', {
+      const res = await fetch('http://localhost:5000/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderPayload),
