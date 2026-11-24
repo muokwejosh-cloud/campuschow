@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, Moon, Ticket, User, LogOut } from 'lucide-react';
 
-export default function Navbar({ onOpenAuth, user, onLogout, onOpenTokens }) {
+export default function Navbar({ onOpenAuth, user, onLogout, onOpenTokens, onNavigate }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
@@ -10,14 +10,14 @@ export default function Navbar({ onOpenAuth, user, onLogout, onOpenTokens }) {
         
         {/* Brand & Left Navigation */}
         <div className="flex items-center gap-10">
-          <a href="#" className="text-3xl font-extrabold tracking-tight text-brand lowercase">
+          <button onClick={() => onNavigate('home')} className="text-3xl font-extrabold tracking-tight text-brand lowercase">
             campuschow
-          </a>
+          </button>
 
           <nav className="hidden md:flex items-center gap-7 text-[15px] font-medium text-charcoal/90">
-            <a href="#" className="hover:text-brand transition-colors">Find food</a>
-            <a href="#" className="hover:text-brand transition-colors">For kiosks</a>
-            <a href="#" className="hover:text-brand transition-colors">Queue tokens</a>
+            <button onClick={() => onNavigate('home')} className="hover:text-brand transition-colors">Find food</button>
+            <button onClick={() => { onNavigate('home'); document.getElementById('kitchens-section')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-brand transition-colors">For kiosks</button>
+            <button onClick={onOpenTokens} className="hover:text-brand transition-colors">Queue tokens</button>
             
             {/* More Dropdown */}
             <div 
@@ -32,9 +32,9 @@ export default function Navbar({ onOpenAuth, user, onLogout, onOpenTokens }) {
 
               {dropdownOpen && (
                 <div className="absolute left-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-black/5 p-2">
-                  <a href="#" className="block px-4 py-2.5 rounded-xl text-sm font-medium text-charcoal/80 hover:bg-stone-50 hover:text-brand">How Pickup Works</a>
-                  <a href="#" className="block px-4 py-2.5 rounded-xl text-sm font-medium text-charcoal/80 hover:bg-stone-50 hover:text-brand">Bukas & Cafeterias</a>
-                  <a href="#" className="block px-4 py-2.5 rounded-xl text-sm font-medium text-charcoal/80 hover:bg-stone-50 hover:text-brand">Help & Support</a>
+                  <button onClick={() => { onNavigate('about'); setDropdownOpen(false); }} className="block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-charcoal/80 hover:bg-stone-50 hover:text-brand">About CampusChow</button>
+                  <button onClick={() => { onNavigate('stories'); setDropdownOpen(false); }} className="block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-charcoal/80 hover:bg-stone-50 hover:text-brand">Food Stories</button>
+                  <button onClick={() => { onNavigate('contact'); setDropdownOpen(false); }} className="block w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-charcoal/80 hover:bg-stone-50 hover:text-brand">Get in Touch</button>
                 </div>
               )}
             </div>

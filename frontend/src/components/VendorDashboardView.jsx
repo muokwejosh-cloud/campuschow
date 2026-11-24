@@ -15,21 +15,21 @@ import {
   Moon,
   ChevronDown
 } from 'lucide-react';
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:5000');
+import { socket } from '../socket';
 
 export default function VendorDashboardView({ user, onLogout }) {
   const [activeSidebarTab, setActiveSidebarTab] = useState('orders'); // 'orders' | 'restaurant' | etc.
   const [restaurantType, setRestaurantType] = useState('Restaurant');
   const [orders, setOrders] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+  const [menuForm, setMenuForm] = useState({ name: '', price: '', description: '' });
   const [loadingOrders, setLoadingOrders] = useState(false);
   
   const [formData, setFormData] = useState({
-    name: user?.storeName || 'Campus Kiosk',
+    name: user?.kitchenName || user?.storeName || 'Campus Kiosk',
     cuisine: 'Nigerian, grills, soups, swallow',
     description: 'Fresh local campus delicacies served hot and fresh during lecture breaks.',
-    area: 'SUB Campus Complex',
+    area: user?.campusLocation || 'SUB Campus Complex',
     streetAddress: 'Block B, Sub Cafeteria Wing',
     phone: user?.phone || '0803 000 0000'
   });
@@ -37,7 +37,7 @@ export default function VendorDashboardView({ user, onLogout }) {
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
-      const res = await fetch('http://localhost:5000/api/orders');
+      const res = await fetch('http://localhost:5000/api/orders', { headers: { Authorization: `Bearer ${localStorage.getItem('campuschow_token')}` } });
       const data = await res.json();
       if (Array.isArray(data)) {
         setOrders(data);
@@ -49,22 +49,28 @@ export default function VendorDashboardView({ user, onLogout }) {
     }
   };
 
+  const fetchMenu = async () => {
+    const response = await fetch('http://localhost:5000/api/vendor/menu', { headers: { Authorization: `Bearer ${localStorage.getItem('campuschow_token')}` } });
+    if (response.ok) setMenuItems(await response.json());
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchMenu();
 
-    socket.on('newOrder', (newOrder) => {
+    socket.on('new-order', (newOrder) => {
       setOrders((prev) => [newOrder, ...prev.filter((o) => o._id !== newOrder._id)]);
     });
 
-    socket.on('orderStatusUpdated', (updated) => {
+    socket.on('order-status-updated', (updated) => {
       setOrders((prev) =>
         prev.map((o) => (o._id === updated._id ? { ...o, status: updated.status } : o))
       );
     });
 
     return () => {
-      socket.off('newOrder');
-      socket.off('orderStatusUpdated');
+      socket.off('new-order');
+      socket.off('order-status-updated');
     };
   }, []);
 
@@ -72,7 +78,7 @@ export default function VendorDashboardView({ user, onLogout }) {
     try {
       const res = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('campuschow_token')}` },
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
@@ -83,6 +89,30 @@ export default function VendorDashboardView({ user, onLogout }) {
     } catch (err) {
       console.error('Error updating status:', err);
     }
+  };
+
+  const addMenuItem = async event => {
+    event.preventDefault();
+    const response = await fetch('http://localhost:5000/api/vendor/menu', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('campuschow_token')}` }, body: JSON.stringify(menuForm) });
+    const result = await response.json();
+    if (!response.ok) return alert(result.message || 'Could not add menu item.');
+    setMenuItems(items => [...items, result]); setMenuForm({ name: '', price: '', description: '' });
+  };
+
+  const toggleMenuItem = async item => {
+    const response = await fetch(`http://localhost:5000/api/vendor/menu/${item._id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('campuschow_token')}` }, body: JSON.stringify({ isAvailable: !item.isAvailable }) });
+    if (response.ok) { const updated = await response.json(); setMenuItems(items => items.map(row => row._id === updated._id ? updated : row)); }
+  };
+
+  const editMenuItem = async item => {
+    const name = window.prompt('Meal name', item.name);
+    if (name === null || !name.trim()) return;
+    const price = window.prompt('Price in naira', String(item.price));
+    if (price === null || !Number.isFinite(Number(price)) || Number(price) <= 0) return;
+    const description = window.prompt('Short description', item.description || '');
+    if (description === null) return;
+    const response = await fetch(`http://localhost:5000/api/vendor/menu/${item._id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('campuschow_token')}` }, body: JSON.stringify({ name: name.trim(), price: Number(price), description }) });
+    if (response.ok) { const updated = await response.json(); setMenuItems(items => items.map(row => row._id === updated._id ? updated : row)); }
   };
 
   return (
@@ -282,6 +312,11 @@ export default function VendorDashboardView({ user, onLogout }) {
                               ₦{order.totalAmount?.toLocaleString()}
                             </span>
                           </div>
+                          <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold">
+                            <span className="rounded-full bg-stone-100 px-2.5 py-1">Kiosk pickup</span>
+                            <span className={`rounded-full px-2.5 py-1 ${order.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{order.paymentMethod === 'online' && order.paymentStatus === 'paid' ? 'PAID ONLINE' : order.paymentStatus === 'paid' ? 'PAID AT COUNTER' : 'PAY AT COUNTER'}</span>
+                            {order.studentId?.name && <span className="rounded-full bg-stone-100 px-2.5 py-1">{order.studentId.name} · {order.studentId.phone}</span>}
+                          </div>
                         </div>
 
                         {/* Order Status Action Controls */}
@@ -295,8 +330,13 @@ export default function VendorDashboardView({ user, onLogout }) {
                             <>
                               <div className="grid grid-cols-2 gap-2">
                                 <button
+                                  onClick={() => handleUpdateStatus(order._id, 'Preparing')}
+                                  disabled={order.status !== 'Pending'}
+                                  className="py-2 px-3 rounded-xl text-xs font-bold bg-brand text-white disabled:bg-stone-100 disabled:text-stone-400"
+                                >Start Preparing</button>
+                                <button
                                   onClick={() => handleUpdateStatus(order._id, 'Almost Ready')}
-                                  disabled={isAlmostReady || isReady}
+                                  disabled={order.status !== 'Preparing'}
                                   className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                                     isAlmostReady
                                       ? 'bg-amber-100 text-amber-800 border border-amber-300'
@@ -311,7 +351,7 @@ export default function VendorDashboardView({ user, onLogout }) {
 
                                 <button
                                   onClick={() => handleUpdateStatus(order._id, 'Ready')}
-                                  disabled={isReady}
+                                  disabled={!['Preparing', 'Almost Ready'].includes(order.status)}
                                   className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                                     isReady
                                       ? 'bg-emerald-600 text-white'
@@ -344,11 +384,19 @@ export default function VendorDashboardView({ user, onLogout }) {
             </div>
           )}
 
+          {activeSidebarTab === 'menu' && <section>
+            <h1 className="text-3xl font-black mb-2">Your kitchen menu</h1><p className="text-sm text-stone-500 mb-6">Items you add here appear in your public kitchen menu.</p>
+            <form onSubmit={addMenuItem} className="bg-white rounded-2xl border p-5 grid md:grid-cols-4 gap-3 mb-6"><input required maxLength={100} placeholder="Meal name" value={menuForm.name} onChange={e => setMenuForm({ ...menuForm, name: e.target.value })} className="border rounded-xl p-3 text-sm"/><input required type="number" min="1" placeholder="Price (₦)" value={menuForm.price} onChange={e => setMenuForm({ ...menuForm, price: e.target.value })} className="border rounded-xl p-3 text-sm"/><input maxLength={300} placeholder="Description" value={menuForm.description} onChange={e => setMenuForm({ ...menuForm, description: e.target.value })} className="border rounded-xl p-3 text-sm"/><button className="bg-brand text-white rounded-xl px-4 py-3 font-bold">Add item</button></form>
+            <div className="space-y-3">{menuItems.map(item => <article key={item._id} className="bg-white border rounded-2xl p-4 flex justify-between items-center"><div><h2 className="font-bold">{item.name} · ₦{item.price.toLocaleString()}</h2><p className="text-xs text-stone-500 mt-1">{item.description}</p></div><div className="flex gap-2"><button onClick={() => editMenuItem(item)} className="rounded-full px-3 py-2 text-xs font-bold bg-stone-100">Edit</button><button onClick={() => toggleMenuItem(item)} className={`rounded-full px-3 py-2 text-xs font-bold ${item.isAvailable ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-500'}`}>{item.isAvailable ? 'Available · Hide' : 'Unavailable · Show'}</button></div></article>)}{!menuItems.length && <p className="text-sm text-stone-500">Add your first item to get started.</p>}</div>
+          </section>}
+
+          {activeSidebarTab === 'earnings' && <section><h1 className="text-3xl font-black mb-6">Revenue & payments</h1><div className="grid sm:grid-cols-3 gap-4">{[{ label: 'Orders', value: orders.length }, { label: 'Paid online', value: orders.filter(o => o.paymentStatus === 'paid' && o.paymentMethod === 'online').length }, { label: 'Revenue', value: `₦${orders.filter(o => o.paymentStatus === 'paid').reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()}` }].map(stat => <article key={stat.label} className="bg-white border rounded-2xl p-5"><p className="text-xs text-stone-500">{stat.label}</p><strong className="text-2xl mt-2 block">{stat.value}</strong></article>)}</div></section>}
+
           {/* Add / Edit Restaurant Tab */}
           {activeSidebarTab === 'restaurant' && (
             <div className="max-w-3xl">
               <h1 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight">
-                Add your restaurant
+                {user?.kitchenName || user?.storeName}
               </h1>
               <p className="text-stone-500 text-sm mt-2 mb-8 leading-relaxed">
                 Tell customers who you are. CampusChow reviews every new restaurant before it goes live, and you can set up your menu while you wait.
@@ -469,7 +517,7 @@ export default function VendorDashboardView({ user, onLogout }) {
             </div>
           )}
 
-          {activeSidebarTab !== 'orders' && activeSidebarTab !== 'restaurant' && (
+          {activeSidebarTab !== 'orders' && activeSidebarTab !== 'restaurant' && activeSidebarTab !== 'menu' && activeSidebarTab !== 'earnings' && (
             <div className="bg-white rounded-3xl border border-stone-200 p-16 text-center text-stone-400">
               <p className="font-bold text-stone-700 uppercase tracking-wider text-xs">Section Active</p>
               <p className="text-sm mt-1">{activeSidebarTab.toUpperCase()} management module is active.</p>

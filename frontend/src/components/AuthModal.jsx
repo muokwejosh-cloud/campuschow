@@ -12,6 +12,8 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     email: '',
     phone: '',
     password: '',
+    kitchenName: '',
+    campusLocation: '',
   });
 
   if (!isOpen) return null;
@@ -39,7 +41,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
       password: formData.password,
       role: roleIntent,
       ...(isRegister && { name: formData.name, email: formData.email }),
-      ...(isRegister && roleIntent === 'vendor' && { storeName: formData.name ? `${formData.name}'s Kitchen` : 'Campus Kiosk' }),
+      ...(isRegister && roleIntent === 'vendor' && { storeName: formData.kitchenName, kitchenName: formData.kitchenName, campusLocation: formData.campusLocation }),
     };
 
     try {
@@ -95,7 +97,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               
-              {/* Radio Selection: Who are you (No riders) */}
+              {/* Role selection */}
               {isRegister && (
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-2">
@@ -131,9 +133,15 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                       </div>
                       <span>Sell food</span>
                     </button>
+                    <button type="button" onClick={() => setRoleIntent('agent')} className={`p-3.5 rounded-xl border text-sm font-bold ${roleIntent === 'agent' ? 'border-brand bg-brand/5' : 'border-stone-200'}`}>Share and earn</button>
                   </div>
                 </div>
               )}
+
+              {isRegister && roleIntent === 'vendor' && <div className="grid sm:grid-cols-2 gap-3">
+                <div><label className="block text-xs font-semibold text-stone-700 mb-1">Kitchen / business name</label><input required value={formData.kitchenName} onChange={e => setFormData({ ...formData, kitchenName: e.target.value })} placeholder="e.g. Chitis Buka" className="w-full bg-white px-4 py-3 rounded-xl border border-stone-200 text-sm" /></div>
+                <div><label className="block text-xs font-semibold text-stone-700 mb-1">Campus location</label><input required value={formData.campusLocation} onChange={e => setFormData({ ...formData, campusLocation: e.target.value })} placeholder="e.g. SUB Cafeteria" className="w-full bg-white px-4 py-3 rounded-xl border border-stone-200 text-sm" /></div>
+              </div>}
 
               {isRegister && (
                 <div>

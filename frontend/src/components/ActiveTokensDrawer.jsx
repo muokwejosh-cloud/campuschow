@@ -83,8 +83,9 @@ export default function ActiveTokensDrawer({ isOpen, onClose, activeOrder, onCom
                 </div>
 
                 <div className="bg-white p-4 rounded-2xl border border-black/5 text-center mb-4">
+                  <span className="text-xs font-semibold text-stone-500 block">{currentOrder.vendorId?.kitchenName || currentOrder.vendorId?.storeName || currentOrder.vendor || 'Campus kitchen'}</span>
                   <span className="text-xs text-subtle block uppercase font-bold tracking-widest">
-                    Counter Pickup Token
+                    Kiosk Pickup Token
                   </span>
                   <span className="text-3xl font-black text-charcoal tracking-tight">
                     {currentOrder.tokenNo}
@@ -115,7 +116,7 @@ export default function ActiveTokensDrawer({ isOpen, onClose, activeOrder, onCom
                   <div className="mt-4 space-y-2">
                     <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2 text-xs text-emerald-800 font-bold">
                       <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-                      <span>Meal is ready! Proceed to the counter for pickup.</span>
+                      <span>Meal is ready! Proceed to the kiosk counter for pickup.</span>
                     </div>
 
                     <button

@@ -7,8 +7,11 @@ export default function CartModal({
   cartItems = [],
   onRemoveItem,
   onProceedToOrder,
+  user,
 }) {
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('pickup_cash');
+  const [sandboxOpen, setSandboxOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -19,7 +22,15 @@ export default function CartModal({
 
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
-    onProceedToOrder(notes, total);
+    if (paymentMethod === 'online') {
+      const key = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+      if (key && window.PaystackPop && user?.email) {
+        window.PaystackPop.setup({ key, email: user.email, amount: total * 100, currency: 'NGN', ref: `CC-${Date.now()}`, callback: ({ reference }) => onProceedToOrder(notes, total, { paymentMethod, reference }) }).openIframe();
+        return;
+      }
+      setSandboxOpen(true); return;
+    }
+    onProceedToOrder(notes, total, { paymentMethod });
   };
 
   return (
@@ -100,6 +111,13 @@ export default function CartModal({
                 </span>
               </div>
             )}
+            {cartItems.length > 0 && <div className="space-y-3">
+              <label className="block text-xs font-bold text-stone-700">Payment</label>
+              <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full p-3 rounded-xl border border-stone-200 text-sm">
+                <option value="pickup_cash">Pay at Pickup Counter</option><option value="online">Pay Online Now</option>
+              </select>
+              <p className="text-[11px] text-stone-500">Never share passwords or sensitive card PINs.</p>
+            </div>}
           </div>
 
           {/* Footer Checkout Button */}
@@ -116,11 +134,12 @@ export default function CartModal({
                 onClick={handleCheckout}
                 className="w-full bg-brand hover:bg-brand-hover text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-brand/20 transition active:scale-95"
               >
-                <span>Generate Pickup Token</span>
+                <span>{paymentMethod === 'online' ? 'Pay and place order' : 'Place order & get token'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           )}
+          {sandboxOpen && <div className="fixed inset-0 z-[60] flex items-center justify-center p-5"><button onClick={() => setSandboxOpen(false)} className="absolute inset-0 bg-black/60" aria-label="Close sandbox"/><div className="relative bg-white rounded-2xl p-6 w-full max-w-sm space-y-4"><h3 className="font-black text-xl">Local payment sandbox</h3><p className="text-sm text-stone-600">Demo a successful ₦{total.toLocaleString()} payment. No card details are requested.</p><button onClick={() => { setSandboxOpen(false); onProceedToOrder(notes, total, { paymentMethod, reference: `DEMO-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}` }); }} className="w-full bg-brand text-white rounded-xl p-3 font-bold">Simulate successful payment</button><button onClick={() => setSandboxOpen(false)} className="w-full text-sm">Cancel</button></div></div>}
 
         </div>
       </div>
